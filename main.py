@@ -40,100 +40,100 @@ def load_config():
         ip_cam5 = config['CAM5']['IP']
         n_cam5 = config['CAM5']['N_CAM']
         cam5_on = config['CAM5']['CAM_ON']
-        out_seting = [ip_cam1, n_cam1, cam1_on, ip_cam2, n_cam2, cam2_on, ip_cam3, n_cam3, cam3_on, ip_cam4, n_cam4,
-                      cam4_on, ip_cam5, n_cam5, cam5_on, port]
-        print('seting1', out_seting[1])
-        return out_seting
+        out_setting = [ip_cam1, n_cam1, cam1_on, ip_cam2, n_cam2, cam2_on, ip_cam3, n_cam3, cam3_on,
+                       ip_cam4, n_cam4, cam4_on, ip_cam5, n_cam5, cam5_on, port]
+        # print('setting1', out_setting[1])
+        return out_setting
     except:
         print('Ошибка данных в config.ini')
         pass
 
 
-def write_code(received,n_cam):
+def write_code(received, n_cam):
     from datetime import datetime
     import json
     data_out = {}
     filename = datetime.now().strftime('%Y-%m-%d_') + n_cam
     filename_log = datetime.now().strftime('%Y-%m-%d_') + n_cam
-    time_resiev = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    time_receive = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     with open(os.path.join(os.getcwd() + '/Code/' + filename) + '.json', 'a+') as out_file:
-        data_scan = {'code_id': received[:-7], 'create_date': time_resiev}
-        data_out.update({'code_id': received[:-7], 'create_date': time_resiev})
+        # data_scan = {'code_id': received[:-7], 'create_date': time_receive}
+        data_out.update({'code_id': received[:-7], 'create_date': time_receive})
         json.dump(data_out, out_file, sort_keys=False, separators=None, ensure_ascii=False)
         logger = setup_logger(n_cam, filename_log + '.log')
         logger.info('Код записан в JSON файл ' + filename + '.json')
         logger.handlers.clear()
 
 
-def conect_cam(IP, PORT, N_CAM):
+def connect_cam(ip, port, n_cam):
     import socket
     import json
     from datetime import datetime
-    filename_log = datetime.now().strftime('%Y-%m-%d_') + N_CAM
-    logger = setup_logger(N_CAM,filename_log+'.log')
-    print('ip,port,№CAM', IP, PORT, N_CAM)
+    filename_log = datetime.now().strftime('%Y-%m-%d_') + n_cam
+    logger = setup_logger(n_cam,filename_log+'.log')
+    print('ip,port,№CAM', ip, port, n_cam)
     m = "23" "{\"ACK\":\"\",\"RET\":0}\n\u0003r"  # словарь из лог файла программы DATA MATRIX HONEYWELL
     data = json.dumps(m)
     # Create a socket (SOCK_STREAM means a TCP socket WINDOWS)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print('Содаём подключение....')
-    logger.info('Подключение к камере '+IP+':'+PORT)
+    logger.info('Подключение к камере '+ip+':'+port)
     logger.handlers.clear()
     try:
         # Connect to server and send data
-        sock.connect((IP, int(PORT)))
-        connected = True
-        logger = setup_logger(N_CAM, filename_log + '.log')
-        logger.info('Камера подключена '+IP+':'+PORT)
+        sock.connect((ip, int(port)))
+        # connected = True
+        logger = setup_logger(n_cam, filename_log + '.log')
+        logger.info('Камера подключена '+ip+':'+port)
         logger.handlers.clear()
-        print('Подключена камера', N_CAM)
+        print('Подключена камера', n_cam)
         sock.sendall(bytes(data, encoding="utf-8"))
         print('Сообщение на камеру отправлено')
-        data_out = {}
+        # data_out = {}
         while True:
             # Подключаемся к серверу, если соединения нет, перезапускаем подключение
             received = sock.recv(256)
             received = received.decode("utf-8")
             received_data = received
             # print('received_data', received_data)
-            # time_resiev = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            # time_receive = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             # print("Sent:     {}".format(data))
             # filename = datetime.now().strftime('%Y-%m-%d_')+N_CAM
-            logger = setup_logger(N_CAM, filename_log + '.log')
+            logger = setup_logger(n_cam, filename_log + '.log')
             logger.info('Код с камеры считан')
             # print('Считанный код', received[:-7])
-            n_cam_chk = N_CAM
+            n_cam_chk = n_cam
             logger.handlers.clear()
             # Если длина полученного сообщения более 70 символов, значит сообщение содержит 3 кода
             if len(received_data) > 70:
                 if chek_file(received_data[0:24], n_cam_chk) == -1:
-                    write_code(received_data[0:24], N_CAM)
+                    write_code(received_data[0:24], n_cam)
                 if chek_file(received_data[31:55], n_cam_chk) == -1:
-                    write_code(received_data[31:55], N_CAM)
+                    write_code(received_data[31:55], n_cam)
                 if chek_file(received_data[62:96], n_cam_chk) == -1:
-                    write_code(received_data[62:96], N_CAM)
+                    write_code(received_data[62:96], n_cam)
             # Если длина полученного сообщения более 70 символов, значит сообщение содержит 2 кода
             elif len(received_data) > 40:
                 if chek_file(received_data[0:24], n_cam_chk) == -1:
-                    write_code(received_data[0:24], N_CAM)
+                    write_code(received_data[0:24], n_cam)
                 if chek_file(received_data[31:55], n_cam_chk) == -1:
-                    write_code(received_data[31:55], N_CAM)
+                    write_code(received_data[31:55], n_cam)
             # Если длина полученного сообщения более 70 символов, значит сообщение содержит 1 код
             else:
                 if chek_file(received_data[0:24], n_cam_chk) == -1:
-                    write_code(received_data[0:24], N_CAM)
+                    write_code(received_data[0:24], n_cam)
     except:
         print('Ошибка связи или другая ошибка')
         sock.close()
-        print('  Подкючение закрыто:', IP+PORT+N_CAM)
+        print('  Подкючение закрыто:', ip+port+n_cam)
         logger.info('Ошибка связи или другая ошибка,Подкючение закрыто')
         logger.handlers.clear()
         sock.close()
-        ip_r, port_r, n_cam_r = IP, PORT, N_CAM
-        reconect_cam(ip_r, port_r, n_cam_r)
+        ip_r, port_r, n_cam_r = ip, port, n_cam
+        reconnect_cam(ip_r, port_r, n_cam_r)
 
 
-def reconect_cam(ip_r, port_r, n_cam_r):
+def reconnect_cam(ip_r, port_r, n_cam_r):
     from datetime import datetime
     filename_log = datetime.now().strftime('%Y-%m-%d_') + n_cam_r
     logger = setup_logger(n_cam_r, filename_log + '.log')
@@ -143,30 +143,30 @@ def reconect_cam(ip_r, port_r, n_cam_r):
         logger.info('Переподключение к камере')
         logger.handlers.clear()
         # print('Переподключение, IP,PORT, №Камеры:',IP_r,PORT_r,N_CAM_r)
-        IP = ip_r
-        PORT = port_r
-        N_CAM = n_cam_r
-        conect_cam(IP,PORT, N_CAM)
+        ip = ip_r
+        port = port_r
+        n_cam = n_cam_r
+        connect_cam(ip, port, n_cam)
 
 
 # Проверяем файл JSON на наличие совпадающих значений ключа code_id
-def chek_file(received_data,N_CAM):
+def chek_file(received_data, n_cam):
     from datetime import datetime
-    filename_log = datetime.now().strftime('%Y-%m-%d_') + N_CAM
-    logger = setup_logger(N_CAM, filename_log + '.log')
-    filename = datetime.now().strftime('%Y-%m-%d_')+N_CAM
+    filename_log = datetime.now().strftime('%Y-%m-%d_') + n_cam
+    logger = setup_logger(n_cam, filename_log + '.log')
+    filename = datetime.now().strftime('%Y-%m-%d_') + n_cam
     print('Проверяем файл', filename, '.json')
     try:
-        with open(os.path.join(os.getcwd()+'/Code/'+str(filename)) +'.json', 'r') as fp:
+        with open(os.path.join(os.getcwd()+'/Code/'+str(filename)) + '.json', 'r') as fp:
             data = fp.read()
-            logger.info('Файл '+filename +'.json'+' готов для записи кодов с камер')
+            logger.info('Файл '+filename + '.json' + ' готов для записи кодов с камер')
             logger.handlers.clear()
             index = data.find(received_data)
     except:
         index = -1
-        print('Файла',filename+N_CAM,'.json не существует')
+        print('Файла', filename + n_cam, '.json не существует')
         print(index)
-        logger.info('Файл'++filename +'.json'+' не существует')
+        logger.info('Файл'++filename + '.json' + ' не существует')
         logger.handlers.clear()
     finally:
         return index
@@ -196,18 +196,17 @@ if __name__ == '__main__':
         os.mkdir('Code')
     # Запускаем опрос и обработку каждой камеры в отдельном потоке
     if cam_1_on == 'true':
-        t1 = Thread(target= conect_cam, args=(IP_CAM1, PORT, N_CAM1))
+        t1 = Thread(target=connect_cam, args=(IP_CAM1, PORT, N_CAM1))
         t1.start()
     if cam_2_on == 'true':
-        t2 = Thread(target= conect_cam, args=(IP_CAM2, PORT, N_CAM2))
+        t2 = Thread(target=connect_cam, args=(IP_CAM2, PORT, N_CAM2))
         t2.start()
     if cam_3_on == 'true':
-        t3 = Thread(target= conect_cam, args=(IP_CAM3, PORT, N_CAM3))
+        t3 = Thread(target=connect_cam, args=(IP_CAM3, PORT, N_CAM3))
         t3.start()
     if cam_4_on == 'true':
-        t4 = Thread(target= conect_cam, args=(IP_CAM4, PORT, N_CAM4))
+        t4 = Thread(target=connect_cam, args=(IP_CAM4, PORT, N_CAM4))
         t4.start()
     if cam_5_on == 'true':
-        t5 = Thread(target= conect_cam, args=(IP_CAM5, PORT, N_CAM5))
+        t5 = Thread(target=connect_cam, args=(IP_CAM5, PORT, N_CAM5))
         t5.start()
-
