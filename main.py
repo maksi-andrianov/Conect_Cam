@@ -14,7 +14,7 @@ def setup_logger(name, log_file, level=logging.INFO):
         logger.addHandler(handler)
         time.sleep(0.1)
         return logger
-    except:
+    except :
         print('Ошибка логера!')
 
 
@@ -44,7 +44,7 @@ def load_config():
                        ip_cam4, n_cam4, cam4_on, ip_cam5, n_cam5, cam5_on, port]
         # print('setting1', out_setting[1])
         return out_setting
-    except:
+    except (TypeError,KeyError):
         print('Ошибка данных в config.ini')
         pass
 
@@ -58,11 +58,12 @@ def write_code(received, n_cam):
     time_receive = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     with open(os.path.join(os.getcwd() + '/Code/' + filename) + '.json', 'a+') as out_file:
         # data_scan = {'code_id': received[:-7], 'create_date': time_receive}
-        data_out.update({'code_id': received[:-7], 'create_date': time_receive})
+        data_out.update({'code_id': received, 'create_date': time_receive})
         json.dump(data_out, out_file, sort_keys=False, separators=None, ensure_ascii=False)
         logger = setup_logger(n_cam, filename_log + '.log')
         logger.info('Код записан в JSON файл ' + filename + '.json')
         logger.handlers.clear()
+        print('Записан в файл', received)
 
 
 def connect_cam(ip, port, n_cam):
@@ -92,10 +93,10 @@ def connect_cam(ip, port, n_cam):
         # data_out = {}
         while True:
             # Подключаемся к серверу, если соединения нет, перезапускаем подключение
-            received = sock.recv(256)
+            received = sock.recv(1024)
             received = received.decode("utf-8")
-            received_data = received
-            # print('received_data', received_data)
+            received_data = format(received)
+            print('received_data', received_data)
             # time_receive = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             # print("Sent:     {}".format(data))
             # filename = datetime.now().strftime('%Y-%m-%d_')+N_CAM
@@ -104,24 +105,29 @@ def connect_cam(ip, port, n_cam):
             # print('Считанный код', received[:-7])
             n_cam_chk = n_cam
             logger.handlers.clear()
+            for i in range(int(len(received_data)/31)):
+                if chek_file(received_data[(0 + i * 31):(24 + i * 31)], n_cam_chk) == -1:
+                    write_code(received_data[(0 + i * 31):(24 + i * 31)], n_cam)
             # Если длина полученного сообщения более 70 символов, значит сообщение содержит 3 кода
-            if len(received_data) > 70:
-                if chek_file(received_data[0:24], n_cam_chk) == -1:
-                    write_code(received_data[0:24], n_cam)
-                if chek_file(received_data[31:55], n_cam_chk) == -1:
-                    write_code(received_data[31:55], n_cam)
-                if chek_file(received_data[62:96], n_cam_chk) == -1:
-                    write_code(received_data[62:96], n_cam)
-            # Если длина полученного сообщения более 70 символов, значит сообщение содержит 2 кода
-            elif len(received_data) > 40:
-                if chek_file(received_data[0:24], n_cam_chk) == -1:
-                    write_code(received_data[0:24], n_cam)
-                if chek_file(received_data[31:55], n_cam_chk) == -1:
-                    write_code(received_data[31:55], n_cam)
-            # Если длина полученного сообщения более 70 символов, значит сообщение содержит 1 код
-            else:
-                if chek_file(received_data[0:24], n_cam_chk) == -1:
-                    write_code(received_data[0:24], n_cam)
+            # if len(received_data) > 70:
+            #     if chek_file(received_data[0:24], n_cam_chk) == -1:
+            #         print('received_data[0:24]', received_data[0:24])
+            #         write_code(received_data[0:24], n_cam)
+            #     if chek_file(received_data[31:55], n_cam_chk) == -1:
+            #         print('received_data[31:55]', received_data[31:55])
+            #         write_code(received_data[31:55], n_cam)
+            #     if chek_file(received_data[62:86], n_cam_chk) == -1:
+            #         write_code(received_data[62:86], n_cam)
+            # # Если длина полученного сообщения более 70 символов, значит сообщение содержит 2 кода
+            # elif len(received_data) > 40:
+            #     if chek_file(received_data[0:24], n_cam_chk) == -1:
+            #         write_code(received_data[0:24], n_cam)
+            #     if chek_file(received_data[31:55], n_cam_chk) == -1:
+            #         write_code(received_data[31:55], n_cam)
+            # # Если длина полученного сообщения более 70 символов, значит сообщение содержит 1 код
+            # else:
+            #     if chek_file(received_data[0:24], n_cam_chk) == -1:
+            #         write_code(received_data[0:24], n_cam)
     except:
         print('Ошибка связи или другая ошибка')
         sock.close()
@@ -142,7 +148,7 @@ def reconnect_cam(ip_r, port_r, n_cam_r):
     while not connected:
         logger.info('Переподключение к камере')
         logger.handlers.clear()
-        # print('Переподключение, IP,PORT, №Камеры:',IP_r,PORT_r,N_CAM_r)
+        # print('Переподключение, IP,PORT, №Камеры:',ip_r,port_r,n_cam_r)
         ip = ip_r
         port = port_r
         n_cam = n_cam_r
