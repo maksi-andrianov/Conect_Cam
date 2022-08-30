@@ -44,7 +44,7 @@ def load_config():
                        ip_cam4, n_cam4, cam4_on, ip_cam5, n_cam5, cam5_on, port]
         # print('setting1', out_setting[1])
         return out_setting
-    except (TypeError,KeyError):
+    except (TypeError, KeyError):
         print('Ошибка данных в config.ini')
         pass
 
@@ -59,11 +59,11 @@ def write_code(received, n_cam):
     with open(os.path.join(os.getcwd() + '/Code/' + filename) + '.json', 'a+') as out_file:
         # data_scan = {'code_id': received[:-7], 'create_date': time_receive}
         data_out.update({'code_id': received, 'create_date': time_receive})
-        json.dump(data_out, out_file, sort_keys=False, separators=None, ensure_ascii=False)
+        json.dump(data_out, out_file, sort_keys=False, separators=None, ensure_ascii=True)
         logger = setup_logger(n_cam, filename_log + '.log')
         logger.info('Код записан в JSON файл ' + filename + '.json')
         logger.handlers.clear()
-        print('Записан в файл', received)
+        # print('Записан в файл', received)
 
 
 def connect_cam(ip, port, n_cam):
@@ -73,11 +73,12 @@ def connect_cam(ip, port, n_cam):
     filename_log = datetime.now().strftime('%Y-%m-%d_') + n_cam
     logger = setup_logger(n_cam,filename_log+'.log')
     print('ip,port,№CAM', ip, port, n_cam)
+    # словарь из лог файла программы DATA MATRIX HONEYWELL (можно отправлять просто пустое сообщение, тоже работает)
     m = "23" "{\"ACK\":\"\",\"RET\":0}\n\u0003r"  # словарь из лог файла программы DATA MATRIX HONEYWELL
     data = json.dumps(m)
     # Create a socket (SOCK_STREAM means a TCP socket WINDOWS)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print('Содаём подключение....')
+    # print('Содаём подключение....')
     logger.info('Подключение к камере '+ip+':'+port)
     logger.handlers.clear()
     try:
@@ -96,42 +97,28 @@ def connect_cam(ip, port, n_cam):
             received = sock.recv(1024)
             received = received.decode("utf-8")
             received_data = format(received)
-            print('received_data', received_data)
-            # time_receive = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-            # print("Sent:     {}".format(data))
-            # filename = datetime.now().strftime('%Y-%m-%d_')+N_CAM
+            # print('received_data', received_data)
             logger = setup_logger(n_cam, filename_log + '.log')
             logger.info('Код с камеры считан')
             # print('Считанный код', received[:-7])
             n_cam_chk = n_cam
             logger.handlers.clear()
-            for i in range(int(len(received_data)/31)):
-                if chek_file(received_data[(0 + i * 31):(24 + i * 31)], n_cam_chk) == -1:
-                    write_code(received_data[(0 + i * 31):(24 + i * 31)], n_cam)
-            # Если длина полученного сообщения более 70 символов, значит сообщение содержит 3 кода
-            # if len(received_data) > 70:
-            #     if chek_file(received_data[0:24], n_cam_chk) == -1:
-            #         print('received_data[0:24]', received_data[0:24])
-            #         write_code(received_data[0:24], n_cam)
-            #     if chek_file(received_data[31:55], n_cam_chk) == -1:
-            #         print('received_data[31:55]', received_data[31:55])
-            #         write_code(received_data[31:55], n_cam)
-            #     if chek_file(received_data[62:86], n_cam_chk) == -1:
-            #         write_code(received_data[62:86], n_cam)
-            # # Если длина полученного сообщения более 70 символов, значит сообщение содержит 2 кода
-            # elif len(received_data) > 40:
-            #     if chek_file(received_data[0:24], n_cam_chk) == -1:
-            #         write_code(received_data[0:24], n_cam)
-            #     if chek_file(received_data[31:55], n_cam_chk) == -1:
-            #         write_code(received_data[31:55], n_cam)
-            # # Если длина полученного сообщения более 70 символов, значит сообщение содержит 1 код
-            # else:
-            #     if chek_file(received_data[0:24], n_cam_chk) == -1:
-            #         write_code(received_data[0:24], n_cam)
+            # В зависимости от длины сообщения записываем код в файл JSON
+            # Записываем код GS1 128 (длина сообщения 48 символов
+            print(len(received_data))
+            if len(received_data) == 48:
+                # print('Пишем штрих код', received_data[0:37] + received_data[38:42]+received_data[43:48])
+                write_code(received_data[0:37] + received_data[38:42]+received_data[43:48], n_cam)
+                # Код записываем в файл, спецсимволы отбрасываются, длина записываемого когда 46 символов
+            else:
+                # длина 1-го сообщения(пакета содержащего код) 31 символ, длина кода в сообщении 24 символа
+                for i in range(int(len(received_data)/31)):
+                    if chek_file(received_data[(0 + i * 31):(24 + i * 31)], n_cam_chk) == -1:
+                        write_code(received_data[(0 + i * 31):(24 + i * 31)], n_cam)
     except:
-        print('Ошибка связи или другая ошибка')
+        # print('Ошибка связи или другая ошибка')
         sock.close()
-        print('  Подкючение закрыто:', ip+port+n_cam)
+        # print('  Подкючение закрыто:', ip+port+n_cam)
         logger.info('Ошибка связи или другая ошибка,Подкючение закрыто')
         logger.handlers.clear()
         sock.close()
@@ -161,7 +148,7 @@ def chek_file(received_data, n_cam):
     filename_log = datetime.now().strftime('%Y-%m-%d_') + n_cam
     logger = setup_logger(n_cam, filename_log + '.log')
     filename = datetime.now().strftime('%Y-%m-%d_') + n_cam
-    print('Проверяем файл', filename, '.json')
+    # print('Проверяем файл', filename, '.json')
     try:
         with open(os.path.join(os.getcwd()+'/Code/'+str(filename)) + '.json', 'r') as fp:
             data = fp.read()
